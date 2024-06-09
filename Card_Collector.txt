@@ -3,7 +3,9 @@
 //= Card Collection Quest NPC
 //= By: Louis T Steinhil
 //= Mostly ChatGPT v 1.0
-//= v1.1 Added Alias Name to bonuses for better readability
+//= v1.1 Added Alias Name to bonuses for better readability.
+//= v1.2 Added Cards submission even if the player doesn't
+//= have the right amount it will still submit regardless.
 //============================================================
 
 moc_para01,16,13,5	script	[ Card Collector ]	4_VR_BOOK_WHITE,{
@@ -132,7 +134,7 @@ switch (select("Start Card Collection:Reset:Cancel")) {
 					// Get the player's inventory
 					getinventorylist;
 
-					// Check if the player has enough cards in their inventory
+					// Check if the player has the selected card in their inventory
 					set .@player_card_count, 0;
 					for(set .@j, 0; .@j < @inventorylist_count; set .@j, .@j + 1) {
 						if(@inventorylist_id[.@j] == .@selectedCardId) {
@@ -141,41 +143,40 @@ switch (select("Start Card Collection:Reset:Cancel")) {
 						}
 					}
 
-					// Check if the player has the required number of cards
-					if (.@player_card_count < .@cards_needed) {
+					// If player has no cards, inform and exit
+					if (.@player_card_count == 0) {
 						mes "[Card Collection NPC]";
-						mes "You do not have enough of this card. You need " + .@cards_needed + " more.";
+						mes "You do not have any of this card.";
 						close;
 					}
 
-					// Check if the maximum submissions for this card has been reached
-					if (.@submission_count >= .@required_cards) {
-						mes "You have already submitted the maximum number of this card.";
-						close;
-					}
+					// Calculate the actual number of cards to submit (up to the needed amount)
+					set .@cards_to_submit, min(.@cards_needed, .@player_card_count);
 
 					// Update submission count
-					setd("Card" + .@selection + "_", .@submission_count + .@cards_needed);
+					setd("Card" + .@selection + "_", .@submission_count + .@cards_to_submit);
 
 					// Remove the cards from the player's inventory
-					delitem .@selectedCardId, .@cards_needed;
+					delitem .@selectedCardId, .@cards_to_submit;
 
 					mes "[Card Collection NPC]";
 					mes "Card submitted successfully!";
 
-					if (getd("Card" + .@selection + "_") == getd("Collect" + .@selection + "_")) {
+					// If the card collection is complete for this card, apply the bonus
+					if (getd("Card" + .@selection + "_") >= getd("Collect" + .@selection + "_")) {
 						// Retrieve the stored bonus and its value
 						set .@bonus_string$, getd("Bonus" + .@selection + "_String$");
+						set .@bonus_alias$, getd("Bonus" + .@selection + "_Alias$");
 						set .@bonus_value, getd("Bonus" + .@selection + "_Value");
 
 						// Apply bonus
 						bonus_script(.@bonus_string$ + .@bonus_value + ";", 512);
 
 						// Display the bonus received
-						mes "[Bonus " + (.@selection + 1) + "]: " + .@bonus_string$ + " " + .@bonus_value;
+						mes "[Bonus " + (.@selection + 1) + "]: " + .@bonus_alias$ + " " + .@bonus_value;
 					}
 					close;
-					break;				
+					break;
 				case 3: // Retrieve Cards
 					// Check if any cards have been submitted
 					set .@cards_submitted, 0;
