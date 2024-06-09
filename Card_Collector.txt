@@ -3,44 +3,48 @@
 //= Card Collection Quest NPC
 //= By: Louis T Steinhil
 //= Mostly ChatGPT v 1.0
+//= v1.1 Added Alias Name to bonuses for better readability
 //============================================================
 
 moc_para01,16,13,5	script	[ Card Collector ]	4_VR_BOOK_WHITE,{
 switch (select("Start Card Collection:Reset:Cancel")) {
-    case 1: // Main GM OPTION
-        if (!getd("card_list")) {
-            // Define the fixed number of cards to collect
-            set .@num_cards_to_select, 5;
-            // Display the card collection quest dialogue
-            mes "[Card Collection NPC]";
-            mes "Welcome to the Card Collection Quest!";
-            mes "Please submit the following [ " + .@num_cards_to_select + " ] different card/s to receive rewards.";
-            next;
-            mes "You must collect the following cards:"; 
-            // Fetch random card IDs for the collection
-            for (set .@i, 0; .@i < .@num_cards_to_select; set .@i, .@i + 1) {
-                .@sql_query$ = "SELECT `id` FROM `item_db_re` WHERE `type` = 'Card' AND `name_english` LIKE '%Card%' ORDER BY RAND() LIMIT 5";
-                .@nb = query_sql(.@sql_query$, .@id[.@i]);
+		case 1: // Main GM OPTION
+		// Main GM OPTION
+		if (!getd("card_list")) {
+			// Define the fixed number of cards to collect
+			set .@num_cards_to_select, 5;
+			// Display the card collection quest dialogue
+			mes "[Card Collection NPC]";
+			mes "Welcome to the Card Collection Quest!";
+			mes "Please submit the following [ " + .@num_cards_to_select + " ] different card/s to receive rewards.";
+			next;
+			mes "You must collect the following cards:"; 
+			// Fetch random card IDs for the collection
+			for (set .@i, 0; .@i < .@num_cards_to_select; set .@i, .@i + 1) {
+				.@sql_query$ = "SELECT `id` FROM `item_db_re` WHERE `type` = 'Card' AND `name_english` LIKE '%Card%' ORDER BY RAND() LIMIT 1";
+				.@nb = query_sql(.@sql_query$, .@id[.@i]);
 
-                if (.@nb < 1) {
-                    mes "[Card Collection NPC]";
-                    mes "There are not enough cards in the database.";
-                    close;
-                }
+				if (.@nb < 1) {
+					mes "[Card Collection NPC]";
+					mes "There are not enough cards in the database.";
+					close;
+				}
 
-                // Generate a random number of cards to collect (between 1 and 10)
-                set .@cards_to_collect, rand(1, 10);
+				// Generate a random number of cards to collect (between 1 and 10)
+				set .@cards_to_collect, rand(1, 10);
 
-                // Save the card ID
-                setd("Card" + .@i, .@id[.@i]);
-                setd("Card" + .@i + "_", 0);
-                setd("Collect" + .@i + "_", .@cards_to_collect);
-                			
+				// Save the card ID
+				setd("Card" + .@i, .@id[.@i]);
+				setd("Card" + .@i + "_", 0);
+				setd("Collect" + .@i + "_", .@cards_to_collect);
+				
 				// Clear the array
 				deletearray .@j[0], getarraysize(.@j);
 				// Generate bonus array with bonus strings
 				setarray .@bonus_string$, "bonus bStr,", "bonus bAgi,", "bonus bVit,", "bonus bInt,", "bonus bDex,", "bonus bLuk,";
-				setarray .@used_bonus_index[0], false, false, false, false, false, false;						
+				// Generate corresponding alias array
+				setarray .@bonus_alias$, "Str +", "Agi +", "Vit +", "Int +", "Dex +", "Luk +";
+				setarray .@used_bonus_index[0], false, false, false, false, false, false;                        
 
 				// Display submitted cards and their statuses
 				for (set .@i, 0; .@i < 5; set .@i, .@i + 1) {
@@ -53,19 +57,20 @@ switch (select("Start Card Collection:Reset:Cancel")) {
 
 					// Store the generated bonus and its value
 					setd("Bonus" + .@i + "_String$", .@bonus_string$[.@random_bonus_index]);
+					setd("Bonus" + .@i + "_Alias$", .@bonus_alias$[.@random_bonus_index]);
 					setd("Bonus" + .@i + "_Value", .@random_number_bonus);
 					
 					.@j[.@i] = getd("Card" + .@i);
 					mes "[" + (.@i+1) + "] " + mesitemlink(.@j[.@i]) + " - (" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ")";
-					mes "> Deposit Reward: " + .@bonus_string$[.@random_bonus_index] + .@random_number_bonus;
-					dispbottom("[" + (.@i+1) + "] " + itemlink(.@j[.@i]) + " - (" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") > Deposit Reward: " + .@bonus_string$[.@random_bonus_index] + .@random_number_bonus);
+					mes "> Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@random_number_bonus;
+					dispbottom("[" + (.@i+1) + "] " + itemlink(.@j[.@i]) + " - (" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") > Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@random_number_bonus);
 					.@j[5] = .@j[5] + getiteminfo(.@j[.@i], ITEMINFO_AEGISNAME);
 				}
-            }
-            setd("card_list", 1);
-            close;
-        } else {                
-            // Display regular options for starting the card collection or choosing "No"
+			}
+			setd("card_list", 1);
+			close;
+		} else {
+			// Display regular options for starting the card collection or choosing "No"
 			switch (select("See List:Submit Cards:Retrieve Card/s:Cancel")) {
 				case 1: // See List
 					// Check if bonuses have been generated before
@@ -74,17 +79,17 @@ switch (select("Start Card Collection:Reset:Cancel")) {
 					for (set .@i, 0; .@i < 5; set .@i, .@i + 1) {
 						// Clear the array
 						deletearray .@j[0], getarraysize(.@j);
-						set .@bonus_string$, getd("Bonus" + .@i + "_String$");
+						set .@bonus_alias$, getd("Bonus" + .@i + "_Alias$");
 						set .@bonus_value, getd("Bonus" + .@i + "_Value");
 
 						// Display submitted cards and their statuses
 						.@j[.@i] = getd("Card" + .@i);
 						mes "[" + (.@i+1) + "] " + mesitemlink(.@j[.@i]) + " - (" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ")";
-						mes "> Deposit Reward: " + .@bonus_string$ + " " + .@bonus_value;
-						dispbottom("[" + (.@i+1) + "] " + itemlink(.@j[.@i]) + " - (" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") > Deposit Reward: " + .@bonus_string$ + " " + .@bonus_value);
+						mes "> Deposit Reward: " + .@bonus_alias$ + " " + .@bonus_value;
+						dispbottom("[" + (.@i+1) + "] " + itemlink(.@j[.@i]) + " - (" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") > Deposit Reward: " + .@bonus_alias$ + " " + .@bonus_value);
 						.@j[5] = .@j[5] + getiteminfo(.@j[.@i], ITEMINFO_AEGISNAME);
 					}
-					close;						
+					close;
 					break;
 				case 2: // Submit Cards
 					// Initialize the menu string
