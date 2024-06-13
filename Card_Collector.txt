@@ -23,7 +23,7 @@ switch (select("Start Card Collection:Reset:Cancel")) {
 			mes "You must collect the following cards:"; 
 			// Fetch random card IDs for the collection
 			for (set .@i, 0; .@i < .@num_cards_to_select; set .@i, .@i + 1) {
-				.@sql_query$ = "SELECT `id` FROM `item_db_re` WHERE `type` = 'Card' AND `name_english` LIKE '%Card%' ORDER BY RAND() LIMIT 1";
+				.@sql_query$ = "SELECT `id` FROM `item_db_re` WHERE `type` = 'Card' AND `name_english` LIKE '%Card%' ORDER BY RAND() LIMIT 5";
 				.@nb = query_sql(.@sql_query$, .@id[.@i]);
 
 				if (.@nb < 1) {
