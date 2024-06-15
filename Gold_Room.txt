@@ -1,0 +1,241 @@
+//============================================================
+//===== rAthena Script =======================================
+//= Card Collection Quest NPC
+//= By: Louis T Steinhil
+//= Mostly ChatGPT v 1.0
+//= v1.0 Initial Release
+//============================================================
+prontera,147,175,5	script	[ Gold Room Warper ]	4_PD_GOLDDRAGON,{
+function	Cm;
+    mes "Welcome to the Gold Room Warperer.";
+    next;
+	mes "Daily Gold Points: [ ^FF0000" + Cm(getd(".player_daily_limit" + getcharid(3))) + " / " + Cm(.daily_gold_limit) + "^000000 ]";
+	next;
+    switch (select("Warp to gold room:Redeem gold points:Reset daily limit:Cancel")) {
+        case 1:
+            mes "[Gold Room Warperer]";
+            mes "Hmm..";
+            mes "It costs 1,000,000z";
+            mes "Would you like to go now to the gold room?";
+            next;
+            if (select("Yes", "No") == 1) {
+                if (Zeny < 1000000) {
+                    mes "You don't have enough Zeny.";
+                } else if (getd("limit") >= 1) {
+                    mes "You have reached your daily gold limit. You cannot enter the mining site.";
+                } else {
+                    zeny -= 1000000;
+                    warp "ordeal_1-2", 0, 0;
+                }
+            }
+            close;
+        case 2:
+			// Handle redeeming gold points
+			mes "[Gold Room Warperer]";
+			mes "Hmm...let me see.";
+
+			// Check if the player has gold to redeem
+			if (gold == 0) {
+				mes "Sorry, but you don't have any gold to redeem.";
+				close;
+			}
+
+			// Display current gold amount
+			mes "You have [ "+ Cm(gold) +" ] gold.";
+
+			// Ask the player how much gold they want to redeem
+			next;
+			mes "Enter the amount of gold you want to redeem:";
+			input .@redeem_amount; // Player inputs the amount to redeem
+
+			// Validate input
+			if (.@redeem_amount <= 0) {
+				mes "Invalid amount. Please enter a positive number.";
+				close;
+			} else if (.@redeem_amount > gold) {
+				mes "You don't have enough gold to redeem that amount.";
+				close;
+			}
+
+			// Confirm the redemption
+			next;
+			mes "Are you sure you want to redeem "+ Cm(.@redeem_amount) +" gold?";
+			switch (select("Yes", "No")) {
+				case 1: // Yes, redeem gold points
+					// Check weight limit for redeeming gold
+					if (checkweight(969, .@redeem_amount) >= 70) {
+						mes "You are overweight!";
+						close;
+					} else {
+						// Give the player gold points item
+						getitem 969, .@redeem_amount;
+						mes "Gained " + Cm(.@redeem_amount) + " Gold Points.";
+						set gold, gold - .@redeem_amount; // Deduct redeemed gold from player's total
+					}
+					break;
+				case 2: // No, do not redeem gold points
+					mes "You decided not to redeem your gold points.";
+					break;
+				default: // Unexpected case (should not happen)
+					mes "An unexpected error occurred.";
+					break;
+			}
+			end;
+        case 3:
+            // Handle resetting daily gold limit
+            mes "[Gold Room Warperer]";
+            mes "Are you sure you want to reset your daily gold limit?";
+            next;
+            if (select("Yes", "No") == 1) {
+                //dispbottom "Debug: Reset daily limit selected.";
+                //dispbottom "Debug: Before reset - Limit: " + getd("limit") + ", Player daily limit: " + getd(".player_daily_limit" + getcharid(3)) + ", Remaining daily limit: " + getd(".remaining_daily_limit" + getcharid(3));
+                
+                setd(".player_daily_limit" + getcharid(3), 0); // Reset player-specific daily limit
+                setd(".remaining_daily_limit" + getcharid(3), 0); // Reset remaining daily limit
+                setd("limit", 0); // Reset limit flag
+                
+                //dispbottom "Debug: After reset - Limit: " + getd("limit") + ", Player daily limit: " + getd(".player_daily_limit" + getcharid(3)) + ", Remaining daily limit: " + getd(".remaining_daily_limit" + getcharid(3));
+                dispbottom "Your daily gold limit has been reset.";
+            } else {
+                mes "No reset has been performed.";
+            }
+            close;
+        default:
+            // Handle cancel option
+            close;
+    }
+
+OnHour00:
+    // Check if it's time to reset the daily limits
+    set .@current_hour, gettimetick(2) / 3600;
+    if (.reset_time != .@current_hour) {
+        set .reset_time, .@current_hour;
+        setd(".player_daily_limit" + getcharid(3), 0); // Reset player-specific daily limit
+        setd(".remaining_daily_limit" + getcharid(3), .daily_gold_limit); // Reset remaining daily limit
+        setd("limit", 0); // Reset limit flag
+        dispbottom "Daily gold limit resets at midnight.";
+        dispbottom "Your daily gold limit has been reset.";
+    }
+    end;
+
+OnNPCKillEvent:
+	
+    // Initialize daily limit settings if not already initialized
+    if (!getd(".player_daily_limit" + getcharid(3))) {
+        setd(".player_daily_limit" + getcharid(3), 0);
+    }
+
+    // Initialize remaining daily limit if not already initialized
+    if (!getd(".remaining_daily_limit" + getcharid(3))) {
+        setd(".remaining_daily_limit" + getcharid(3), .daily_gold_limit); // Adjust initial remaining limit as needed
+    }
+
+
+    // Check if it's time to reset the daily limits
+    set .reset_time, gettimetick(2) + 86400 - gettimetick(2) % 86400;
+    if (gettimetick(2) >= getd(".reset_time")) {
+        setd(".reset_time", gettimetick(2) + 86400 - gettimetick(2) % 86400); // Reset at next midnight
+        setd(".player_daily_limit" + getcharid(3), 0); // Reset player-specific daily limit
+        setd(".remaining_daily_limit" + getcharid(3), .daily_gold_limit); // Reset remaining daily limit
+        setd("limit", 0); // Reset limit flag
+        //dispbottom "Debug: Daily gold limit reset via OnNPCKillEvent.";
+    }
+
+    .@killedrid = killedrid;
+
+    // Determine gold gain based on monster killed
+    if (strcharinfo(3) == "ordeal_1-2") {
+        if (.@killedrid == 1369) {
+            set @gain, rand(1, 5);
+        } else if (.@killedrid == 1830) {
+            set @gain, rand(6, 10);
+        }
+        set gold, gold + @gain;
+    }
+
+    // Update player-specific daily gold limit
+    setd(".player_daily_limit" + getcharid(3), getd(".player_daily_limit" + getcharid(3)) + @gain);
+    //dispbottom "Debug: Player daily limit updated to " + getd(".player_daily_limit" + getcharid(3));
+
+   // Check if player has reached daily gold limit
+    if (strcharinfo(3) == "ordeal_1-2") {
+		if (.@killedrid == 1369 || .@killedrid == 1830){
+			if (getd(".player_daily_limit" + getcharid(3)) >= .daily_gold_limit) {
+				// Rollback the gold gain
+				set gold, .daily_gold_limit;
+				setd("limit", 1);
+				dispbottom "You have reached your daily gold limit. Come back tomorrow!";
+				end;
+			}
+			// Update remaining daily limit and save it
+			set .@remaining_gold, .daily_gold_limit - getd(".player_daily_limit" + getcharid(3));
+			setd(".remaining_daily_limit" + getcharid(3), .@remaining_gold);
+			//dispbottom "Debug: Remaining daily limit updated to " + .@remaining_gold;
+
+			// Displaying Gained Gold and Remaining Limit
+			if (@gain) {
+				dispbottom "You got: " + Cm(@gain) + " gold - Total of: " + Cm(gold) + " gold";
+				dispbottom "Remaining daily limit: " + Cm(.@remaining_gold);         
+			}
+			end;
+		}
+    }
+
+
+OnPCDieEvent:
+
+    .@killerrid = killerrid;
+	
+    if (strcharinfo(3) == "ordeal_1-2" && .@killerrid != getcharid(3) || getmonsterinfo(.@killerrid, MOB_ID) == 1830 || getmonsterinfo(.@killerrid, MOB_ID) == 1369) {
+        set gold, gold - ((gold * 30) / 100);
+        dispbottom "You have lost 30% of your gold points.";
+        dispbottom "Your remaining gold is [ " + gold + " ].";
+    }
+    end;
+// Use: Cm(number)
+function	Cm	{
+
+	set .@str$, getarg(0);
+	
+	for(set .@i,getstrlen(.@str$)-3; .@i>0; set .@i,.@i-3){
+		set .@str$, insertchar(.@str$,",",.@i);
+	}
+return .@str$;
+}	
+OnInit:
+    setunitdata( getnpcid(0), UNPC_GROUP_ID, 11 );
+    setunittitle( getnpcid(0), "Jamire" );
+    // Initialize reset time to the next midnight
+    .reset_time = gettimetick(2) + (86400 - gettimetick(2) % 86400);
+	.daily_gold_limit = 10000;
+    end;
+}
+
+
+//========================================================
+ordeal_1-2	mapflag	noskill
+ordeal_1-2	mapflag	nomemo
+ordeal_1-2	mapflag	nobranch
+ordeal_1-2	mapflag	noloot 
+ordeal_1-2	mapflag	noexp
+ordeal_1-2	mapflag	nodrop
+ordeal_1-2	mapflag	novending
+ordeal_1-2	mapflag	nowarp
+ordeal_1-2	mapflag	nowarpto
+ordeal_1-2	mapflag	pvp
+ordeal_1-2	mapflag	pvp_noparty
+ordeal_1-2	mapflag	pvp_noguild
+ordeal_1-2	mapflag	nosave
+ordeal_1-2	mapflag	noreturn
+//========================================================
+ordeal_1-2,73,265,0	warp	ord500	1,1,prontera,143,185
+ordeal_1-2,129,194,0	warp	ord501	1,1,prontera,143,185
+
+
+//=====================Spawns=============================
+ordeal_1-2,0,0,0,0	monster	Gold Pecopeco	1369,150,15000
+ordeal_1-2,0,0,0,0	monster	Gold Pecopeco	1369,150,15000
+ordeal_1-2,0,0,0,0	monster	Gold Pecopeco	1369,100,15000
+ordeal_1-2,0,0,0,0	monster	Gold Pecopeco	1369,100,15000
+ordeal_1-2,0,0,0,0	monster	Gold Pecopeco	1369,150,15000
+ordeal_1-2,0,0,0,0	monster	Gold Guardian	1830,50,15000
