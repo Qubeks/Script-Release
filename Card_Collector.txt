@@ -6,12 +6,14 @@
 //= v1.1 Added Alias Name to bonuses for better readability.
 //= v1.2 Added Cards submission even if the player doesn't
 //= have the right amount it will still submit regardless.
-//= v1.3Initialization and resetting of arrays and variables: 
+//= v1.3 Initialization and resetting of arrays and variables: 
 //= Ensure that arrays and variables are properly initialized 
 //= and reset to avoid data from previous iterations.
 //= Avoiding nested loops with the same loop counter: 
 //= The loop counter for the outer and inner loops should be
 //= different to prevent conflicts.
+//= v1.4 Rearranged for better readability. Replaced getiteminfo
+//= on submit with getitemname.
 //============================================================
 
 yuno_in02,93,207,5	script	Card Album	4_ENERGY_WHITE,{
@@ -105,9 +107,9 @@ switch (select("Start Card Collection:Reset:Cancel")) {
 				setd("Bonus" + .@i + "_Value", .@random_number_bonus);
 
 				.@j[.@i] = getd("Card" + .@i);
-				mes "[" + (.@i+1) + "] " + mesitemlink(.@j[.@i]) + " - (" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ")";
+				mes "(" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") - " + mesitemlink(.@j[.@i]);
 				mes "> Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@random_number_bonus;
-				dispbottom("[" + (.@i+1) + "] " + itemlink(.@j[.@i]) + " - (" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") > Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@random_number_bonus);
+				dispbottom("(" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") - " + itemlink(.@j[.@i]) + " > Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@random_number_bonus);
 			}
 
 			// Set the card list flag
@@ -128,9 +130,9 @@ switch (select("Start Card Collection:Reset:Cancel")) {
 
 						// Display submitted cards and their statuses
 						.@j[.@i] = getd("Card" + .@i);
-						mes "[" + (.@i+1) + "] " + mesitemlink(.@j[.@i]) + " - (" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ")";
-						mes "> Deposit Reward: " + .@bonus_alias$ + " " + .@bonus_value;
-						dispbottom("[" + (.@i+1) + "] " + itemlink(.@j[.@i]) + " - (" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") > Deposit Reward: " + .@bonus_alias$ + " " + .@bonus_value);
+						mes "(" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") - " + mesitemlink(.@j[.@i]);
+						mes "> Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@random_number_bonus;
+						dispbottom("(" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") - " + itemlink(.@j[.@i]) + " > Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@random_number_bonus);
 						.@j[5] = .@j[5] + getiteminfo(.@j[.@i], ITEMINFO_AEGISNAME);
 					}
 					close;
@@ -142,7 +144,7 @@ switch (select("Start Card Collection:Reset:Cancel")) {
 					// Loop through the list of card IDs to populate the menu
 					for (set .@i, 0; .@i < 5; set .@i, .@i + 1) {
 						// Get the card name using its ID
-						set .@card_name$, getiteminfo(getd("Card" + .@i), ITEMINFO_AEGISNAME);
+						set .@card_name$, getitemname(getd("Card" + .@i));
 
 						// Get the submission count using dedicated variable
 						set .@submission_count, getd("Card" + .@i + "_");
@@ -154,7 +156,7 @@ switch (select("Start Card Collection:Reset:Cancel")) {
 						set .@submission_status$, " (" + .@submission_count + " / " + .@required_cards + ")";
 
 						// Append the card name and submission status to the menu string
-						.@menu$ += .@card_name$ + .@submission_status$ + ":";
+						.@menu$ += .@submission_status$ + " - " +.@card_name$ + ":";
 					}
 
 					mes "[Card Collection NPC]";
